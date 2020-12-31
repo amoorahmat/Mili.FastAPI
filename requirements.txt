@@ -1,0 +1,15 @@
+fastapi>=0.61.0
+pip install fastapi
+pip install bson
+pip install sqlalchemy
+pip install pyodbc
+pip install passlib[bcrypt]
+pip install python-multipart
+pip install passlib
+pip install python-jose[cryptography]
+pip install uvicorn
+
+
+ uvicorn  main:app --reload
+ uvicorn main:app --host 127.0.0.1 --port 8000
+
