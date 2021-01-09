@@ -40,21 +40,6 @@ def callProcedure(procname, data, dbname):
         finaleDB = secret['hoodb']
         finaleUsr = secret['hoousername']
         finalPass = secret['hoopassword']
-    elif dbname == 'gms':
-        finaleSrv = secret['gmsserver']
-        finaleDB = secret['gmsdb']
-        finaleUsr = secret['gmsusername']
-        finalPass = secret['gmspassword']
-    elif dbname == 'coinbit':
-        finaleSrv = secret['coinserver']
-        finaleDB = secret['coindb']
-        finaleUsr = secret['coinusername']
-        finalPass = secret['coinpassword']
-    elif dbname == 'torder':
-        finaleSrv = secret['torderserver']
-        finaleDB = secret['torderdb']
-        finaleUsr = secret['torderusername']
-        finalPass = secret['torderpassword']
 
     # on windows os use below connection string
     # params = urllib.parse.quote_plus(
