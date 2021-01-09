@@ -35,11 +35,11 @@ def callProcedure(procname, data, dbname):
     finaleUsr = ''
     finalPass = ''
 
-    if dbname == 'hoo':
-        finaleSrv = secret['hooserver']
-        finaleDB = secret['hoodb']
-        finaleUsr = secret['hoousername']
-        finalPass = secret['hoopassword']
+    # if dbname == 'hoo':
+    finaleSrv = secret['hooserver']
+    finaleDB = secret['hoodb']
+    finaleUsr = secret['hoousername']
+    finalPass = secret['hoopassword']
 
     # on windows os use below connection string
     # params = urllib.parse.quote_plus(
