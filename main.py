@@ -107,6 +107,7 @@ class Token(BaseModel):
     MemberID: int
     StaffID: int
     Gender: bool
+    OTPNeed: bool
 
 
 class BackendEntity(BaseModel):
@@ -304,7 +305,7 @@ async def login_for_access_token_hoo(tokenEntity: TokenEntity):
             "UserName": user.get("UserName", ""), "IsActive": user.get("IsActive", None),
             "FirstName": user.get("FirstName", ""), "LastName": user.get("LastName", ""),
             "MemberID": user.get("MemberID", None), "StaffID": user.get("StaffID", None),
-            "Gender": user.get("Gender", None)}
+            "Gender": user.get("Gender", None),"OTPNeed": user.get("OTPNeed", None)}
 
 
 @app.post("/UserInfoByToken", response_model=Token)
@@ -322,7 +323,7 @@ async def login_for_access_token_userinfo(token: str):
             "UserName": user.get("UserName", ""), "IsActive": user.get("IsActive", None),
             "FirstName": user.get("FirstName", ""), "LastName": user.get("LastName", ""),
             "MemberID": user.get("MemberID", None), "StaffID": user.get("StaffID", None),
-            "Gender": user.get("Gender", None)}
+            "Gender": user.get("Gender", None),"OTPNeed": user.get("OTPNeed", None)}
 
 
 @app.post("/SsCZC7hJxulnQ4l")
@@ -339,7 +340,7 @@ async def SsCZC7hJxulnQ4l_hoo(token: str, koscher: str, textstr: str):
     user_password = user.get("Password", None)
     if not verify_password(koscher, user_password):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="current_koscher_is_incorret",
             headers={"WWW-Authenticate": "Bearer"},
         )
@@ -362,241 +363,3 @@ async def BackendEngineBody_hoo(backendEntity: BackendEntity, current_user: User
 
 #######################################
 
-
-#GMS###################################
-
-async def get_current_user_gms(token: str = Depends(oauth2_scheme)):
-    dir = '%s/secret.json' % (os.path.dirname(__file__))
-    with open(dir) as json_file:
-        secret = json.load(json_file)
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        jwt_options = {
-            'verify_signature': False,
-            'verify_exp': True,
-            'verify_nbf': False,
-            'verify_iat': True,
-            'verify_aud': False
-        }
-        payload = jwt.decode(token, secret["secretkey"], algorithms=[
-                             secret['ALGORITHM']],
-                             options=jwt_options)
-
-        username: str = payload.get("sub")
-
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError as e:
-        print('jwt decode error:' + str(e))
-        raise credentials_exception
-    user = get_user(username=token_data.username, dbname="gms")
-    if user is None:
-        raise credentials_exception
-    return user
-
-
-async def get_current_active_user_gms(current_user: User = Depends(get_current_user_gms)):
-    # user_id = current_user.get("ID", None)
-    if not current_user:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-
-@app.post("/gms/token", response_model=Token)
-async def login_for_access_token_gms(tokenEntity: TokenEntity):
-    dir = '%s/secret.json' % (os.path.dirname(__file__))
-    with open(dir) as json_file:
-        secret = json.load(json_file)
-
-    user = authenticate_user(tokenEntity.username, tokenEntity.password, "gms")
-    # user_id = user.get("ID", None)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    # print(user)
-    access_token_expires = timedelta(
-        minutes=int(secret['ACCESS_TOKEN_EXPIRE_MINUTES']))
-    access_token = create_access_token(
-        data={"sub": user.get("UserName", None)}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer", "UserID": user.get("UserID", None),
-            "UserName": user.get("UserName", ""), "IsActive": user.get("IsActive", None),
-            "FirstName": user.get("FirstName", ""), "LastName": user.get("LastName", ""),
-            "MemberID": user.get("MemberID", None), "StaffID": user.get("StaffID", None),
-            "Gender": user.get("Gender", None)}
-
-
-# @app.post("/gms/SsCZC7hJxulnQ4l")
-# async def SsCZC7hJxulnQ4l_gms(token: str, textstr: str):
-#     user = get_current_user_bytoken(token, "gms")
-
-#     if not user:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Incorrect username or password",
-#             headers={"WWW-Authenticate": "Bearer"},
-#         )
-
-#     newpwd = get_password_hash(textstr)
-#     return callProcedure("UserResetPwd", '{"ID":"%s","pwd":"%s"}' % (str(user.get("UserID", None)), newpwd), "gms")
-
-
-@app.post("/gms/BackendEngine/")
-async def BackendEngine_gms(procname: str, params: str, current_user: User = Depends(get_current_active_user_gms)):
-    return callProcedure(procname, params, "gms")
-
-
-@app.post("/gms/BackendEngineBody/")
-async def BackendEngineBody_gms(backendEntity: BackendEntity, current_user: User = Depends(get_current_active_user_gms)):
-    param = json.dumps(backendEntity.params, default=myconverter,
-                       ensure_ascii=False)
-
-    return callProcedure(backendEntity.procname, param, "gms")
-
-#######################################
-
-
-#COINBIT###############################
-
-async def get_current_user_coinbit(token: str = Depends(oauth2_scheme)):
-    dir = '%s/secret.json' % (os.path.dirname(__file__))
-    with open(dir) as json_file:
-        secret = json.load(json_file)
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        jwt_options = {
-            'verify_signature': False,
-            'verify_exp': True,
-            'verify_nbf': False,
-            'verify_iat': True,
-            'verify_aud': False
-        }
-        payload = jwt.decode(token, secret["secretkey"], algorithms=[
-                             secret['ALGORITHM']],
-                             options=jwt_options)
-
-        username: str = payload.get("sub")
-
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError as e:
-        print('jwt decode error:' + str(e))
-        raise credentials_exception
-    user = get_user(username=token_data.username, dbname="coinbit")
-    if user is None:
-        raise credentials_exception
-    return user
-
-
-async def get_current_active_user_coinbit(current_user: User = Depends(get_current_user_coinbit)):
-    # user_id = current_user.get("ID", None)
-    if not current_user:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-
-@app.post("/coinbit/token", response_model=Token)
-async def login_for_access_token_coinbit(tokenEntity: TokenEntity):
-    dir = '%s/secret.json' % (os.path.dirname(__file__))
-    with open(dir) as json_file:
-        secret = json.load(json_file)
-
-    user = authenticate_user(tokenEntity.username,
-                             tokenEntity.password, "coinbit")
-    # user_id = user.get("ID", None)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    # print(user)
-    access_token_expires = timedelta(
-        minutes=int(secret['ACCESS_TOKEN_EXPIRE_MINUTES']))
-    access_token = create_access_token(
-        data={"sub": user.get("UserName", None)}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer", "UserID": user.get("UserID", None),
-            "UserName": user.get("UserName", ""), "IsActive": user.get("IsActive", None),
-            "FirstName": user.get("FirstName", ""), "LastName": user.get("LastName", ""),
-            "MemberID": user.get("MemberID", None), "StaffID": user.get("StaffID", None),
-            "Gender": user.get("Gender", None)}
-
-
-# @app.post("/coinbit/SsCZC7hJxulnQ4l")
-# async def SsCZC7hJxulnQ4l_coinbit(token: str, textstr: str):
-#     user = get_current_user_bytoken(token, "coinbit")
-
-#     if not user:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Incorrect username or password",
-#             headers={"WWW-Authenticate": "Bearer"},
-#         )
-#
-    # newpwd = get_password_hash(textstr)
-    # return callProcedure("UserResetPwd", '{"ID":"%s","pwd":"%s"}' % (str(user.get("UserID", None)), newpwd), "coinbit")
-
-
-@app.post("/coinbit/BackendEngine/")
-async def BackendEngine_cointbit(procname: str, params: str, current_user: User = Depends(get_current_active_user_coinbit)):
-    return callProcedure(procname, params, "coinbit")
-
-
-@app.post("/coinbit/BackendEngineBody/")
-async def BackendEngineBody_coinbit(backendEntity: BackendEntity, current_user: User = Depends(get_current_active_user_coinbit)):
-    param = json.dumps(backendEntity.params, default=myconverter,
-                       ensure_ascii=False)
-
-    return callProcedure(backendEntity.procname, param, "coinbit")
-
-
-@app.get("/coinbit/e71234d056b056c794a321e54fffc92f/")
-async def BackendEngine_coinbit_get_crypto_price(getall: int):
-    return callProcedure('CryptoPriceGet', getall, "coinbit")
-
-
-@app.get("/coinbit/fgttzibz7hdn8c63798u7n3cahxdvbvh/")
-async def BackendEngine_coinbit_get_gold_price():
-    return callProcedure('GoldPriceGet', '', "coinbit")
-
-
-@app.get("/coinbit/v2wyy3v9ptdrv27uqug2phxaqhggbwdx/")
-async def BackendEngine_coinbit_get_curreny_price():
-    return callProcedure('CurrencyPriceGet', '', "coinbit")
-
-
-#######################################
-
-
-#TORDER################################
-
-@app.post("/torder/BackendEngine/")
-async def BackendEngine_torder(procname: str, params: str):
-    return callProcedure(procname, params, "torder")
-
-
-@app.post("/torder/BackendEngineBody/")
-async def BackendEngineBody_torder(backendEntity: BackendEntity):
-    param = json.dumps(backendEntity.params, default=myconverter,
-                       ensure_ascii=False)
-
-    return callProcedure(backendEntity.procname, param, "torder")
-
-
-#######################################
