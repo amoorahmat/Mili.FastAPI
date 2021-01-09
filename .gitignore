@@ -11,6 +11,8 @@
 *.vscode/extensions.json
 *.code-workspace
 *secret.json
+*.sh
+*.out
 *main.cpython-38.pyc
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
